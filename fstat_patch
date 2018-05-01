@@ -1,0 +1,142 @@
+Index: fstat.c
+===================================================================
+RCS file: /cvs/src/usr.bin/fstat/fstat.c,v
+retrieving revision 1.93
+diff -u -p -r1.93 fstat.c
+--- fstat.c	10 Apr 2018 11:09:14 -0000	1.93
++++ fstat.c	30 Apr 2018 20:57:40 -0000
+@@ -96,6 +96,7 @@ int	checkfile; /* true if restricting to
+ int	nflg;	/* (numerical) display f.s. and rdev as dev_t */
+ int	oflg;	/* display file offset */
+ int	sflg;	/* display file xfer/bytes counters */
++int	bflg;	/* display file xfer/bytes counters in bytes */
+ int	vflg;	/* display errors in locating kernel data objects etc... */
+ int	cflg; 	/* fuser only */
+ 
+@@ -156,7 +157,7 @@ main(int argc, char *argv[])
+ 		optstr = "cfks:uM:N:";
+ 	} else {
+ 		fuser = 0;
+-		optstr = "fnop:su:vN:M:";
++		optstr = "bfnop:su:vN:M:";
+ 	}
+ 
+ 	/*
+@@ -166,6 +167,11 @@ main(int argc, char *argv[])
+ 	 */
+ 	while ((ch = getopt(argc, argv, optstr)) != -1)
+ 		switch ((char)ch) {
++		case 'b':
++			if (sflg)
++                                usage();
++			bflg = 1;
++                        break;
+ 		case 'c':
+ 			if (fsflg)
+ 				usage();
+@@ -211,6 +217,9 @@ main(int argc, char *argv[])
+ 					warnx("invalid signal %s", optarg);
+ 					usage();
+ 				}
++			} else {
++				if (bflg)
++                                	usage();
+ 			}
+ 			break;
+ 		case 'u':
+@@ -328,6 +337,8 @@ fstat_header(void)
+ 		printf(" NAME");
+ 	if (sflg)
+ 		printf("    XFERS   KBYTES");
++	else if (bflg)
++		printf("    XFERS   BYTES");
+ 	putchar('\n');
+ }
+ 
+@@ -478,10 +489,11 @@ vtrans(struct kinfo_file *kf)
+ 				printf(":%-8s", "*");
+ 		}
+ 	}
+-	if (sflg) {
++	if (sflg || bflg) {
+ 		if (uid == 0 || uid == *procuid) {
+ 			printf(" %8llu %8llu",
+ 			    (kf->f_rxfer + kf->f_rwfer),
++			    bflg ? (kf->f_rbytes + kf->f_wbytes) : \
+ 			    (kf->f_rbytes + kf->f_wbytes) / 1024);
+ 		} else {
+ 			printf(" %8s %8s", "*", "*");
+@@ -515,9 +527,10 @@ pipetrans(struct kinfo_file *kf)
+ 	    (kf->pipe_state & PIPE_WANTR) ? "R" : "",
+ 	    (kf->pipe_state & PIPE_WANTW) ? "W" : "",
+ 	    (kf->pipe_state & PIPE_EOF) ? "E" : "");
+-	if (sflg)
++	if (sflg || bflg)
+ 		printf("\t%8llu %8llu",
+ 		    (kf->f_rxfer + kf->f_rwfer),
++		    bflg ? (kf->f_rbytes + kf->f_wbytes) : \
+ 		    (kf->f_rbytes + kf->f_wbytes) / 1024);
+ 	printf("\n");
+ 	return;
+@@ -810,9 +823,10 @@ socktrans(struct kinfo_file *kf)
+ 				print_sock_details(from);
+ 		}
+ 	}
+-	if (sflg)
++	if (sflg || bflg)
+ 		printf("\t%8llu %8llu",
+ 		    (kf->f_rxfer + kf->f_rwfer),
++		    bflg ? (kf->f_rbytes + kf->f_wbytes) : \
+ 		    (kf->f_rbytes + kf->f_wbytes) / 1024);
+ 	printf("\n");
+ }
+@@ -910,8 +924,8 @@ usage(void)
+ 		fprintf(stderr, "usage: fuser [-cfku] [-M core] "
+ 		    "[-N system] [-s signal] file ...\n");
+ 	} else {
+-		fprintf(stderr, "usage: fstat [-fnosv] [-M core] [-N system] "
+-		    "[-p pid] [-u user] [file ...]\n");
++		fprintf(stderr, "usage: fstat [-fnov] [-b | -s] "
++		    "[-M core] [-N system] [-p pid] [-u user] [file ...]\n");
+ 	}
+ 	exit(1);
+ }
+
+Index: fstat.1
+===================================================================
+RCS file: /cvs/src/usr.bin/fstat/fstat.1,v
+retrieving revision 1.56
+diff -u -p -r1.56 fstat.1
+--- fstat.1	16 Mar 2018 16:58:26 -0000	1.56
++++ fstat.1	30 Apr 2018 21:09:49 -0000
+@@ -37,7 +37,8 @@
+ .Nd display status of open files
+ .Sh SYNOPSIS
+ .Nm fstat
+-.Op Fl fnosv
++.Op Fl fnov
++.Op Fl b | s
+ .Op Fl M Ar core
+ .Op Fl N Ar system
+ .Op Fl p Ar pid
+@@ -55,6 +56,8 @@ reports on all open files in the system.
+ .Pp
+ The options are as follows:
+ .Bl -tag -width Ds
++.It Fl b
++Like `-s', but display value for bytes transferred in bytes.
+ .It Fl f
+ Restrict examination to files open in the same file systems as
+ the named file arguments, or to the file system containing the
+@@ -195,8 +198,9 @@ the name printed may not be the actual
+ name that the process originally used to open that file.
+ .It Li XFERS
+ Displays number of total data transfers performed on the file.
+-.It Li KBYTES
+-Displays total number of Kbytes written and read to the file.
++.It Li BYTES/KBYTES
++Depending on `-b' or `-s' options, displays total number of
++Bytes or Kbytes written and read to the file.
+ .El
+ .Sh SOCKETS
+ The formatting of open sockets depends on the protocol domain.
