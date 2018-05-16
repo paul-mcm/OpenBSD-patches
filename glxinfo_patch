@@ -1,0 +1,16 @@
+Index: glx/xintro.3gl
+===================================================================
+RCS file: /cvs/xenocara/doc/gl-docs/GL/glx/xintro.3gl,v
+retrieving revision 1.2
+diff -u -p -r1.2 xintro.3gl
+--- glx/xintro.3gl      24 Oct 2010 10:14:44 -0000      1.2
++++ glx/xintro.3gl      15 May 2018 22:57:10 -0000
+@@ -84,7 +84,7 @@ static int attributeListSgl[] = {
+
+ static int attributeListDbl[] = {
+        GLX_RGBA,
+-       GLX_DOUBLE_BUFFER, /*In case single buffering is not supported*/
++       GLX_DOUBLEBUFFER, /*In case single buffering is not supported*/
+        GLX_RED_SIZE,   1,
+        GLX_GREEN_SIZE, 1,
+        GLX_BLUE_SIZE,  1,
