@@ -1,10 +1,61 @@
+? fstat
+? fstat.d
+? fstat1.c
+? fuser.d
+? patch
+Index: fstat.1
+===================================================================
+RCS file: /cvs/src/usr.bin/fstat/fstat.1,v
+retrieving revision 1.56
+diff -u -p -u -p -r1.56 fstat.1
+--- fstat.1	16 Mar 2018 16:58:26 -0000	1.56
++++ fstat.1	27 Jun 2018 05:42:11 -0000
+@@ -37,7 +37,8 @@
+ .Nd display status of open files
+ .Sh SYNOPSIS
+ .Nm fstat
+-.Op Fl fnosv
++.Op Fl fnov
++.Op Fl b | s
+ .Op Fl M Ar core
+ .Op Fl N Ar system
+ .Op Fl p Ar pid
+@@ -55,6 +56,8 @@ reports on all open files in the system.
+ .Pp
+ The options are as follows:
+ .Bl -tag -width Ds
++.It Fl b
++Like `-s', but display value for bytes transferred in bytes.
+ .It Fl f
+ Restrict examination to files open in the same file systems as
+ the named file arguments, or to the file system containing the
+@@ -164,6 +167,7 @@ This column describes the properties of 
+ r	Open for reading
+ w	Open for writing
+ e	close-on-exec flag is set
++p	file opened after pledge(2) 
+ .Ed
+ .Pp
+ This field is useful when trying to find the processes that are
+@@ -195,8 +199,9 @@ the name printed may not be the actual
+ name that the process originally used to open that file.
+ .It Li XFERS
+ Displays number of total data transfers performed on the file.
+-.It Li KBYTES
+-Displays total number of Kbytes written and read to the file.
++.It Li BYTES/KBYTES
++Depending on `-b' or `-s' options, displays total number of
++Bytes or Kbytes written and read to the file.
+ .El
+ .Sh SOCKETS
+ The formatting of open sockets depends on the protocol domain.
 Index: fstat.c
 ===================================================================
 RCS file: /cvs/src/usr.bin/fstat/fstat.c,v
 retrieving revision 1.93
-diff -u -p -r1.93 fstat.c
+diff -u -p -u -p -r1.93 fstat.c
 --- fstat.c	10 Apr 2018 11:09:14 -0000	1.93
-+++ fstat.c	30 Apr 2018 20:57:40 -0000
++++ fstat.c	27 Jun 2018 05:42:11 -0000
 @@ -96,6 +96,7 @@ int	checkfile; /* true if restricting to
  int	nflg;	/* (numerical) display f.s. and rdev as dev_t */
  int	oflg;	/* display file offset */
@@ -101,42 +152,3 @@ diff -u -p -r1.93 fstat.c
  	}
  	exit(1);
  }
-
-Index: fstat.1
-===================================================================
-RCS file: /cvs/src/usr.bin/fstat/fstat.1,v
-retrieving revision 1.56
-diff -u -p -r1.56 fstat.1
---- fstat.1	16 Mar 2018 16:58:26 -0000	1.56
-+++ fstat.1	30 Apr 2018 21:09:49 -0000
-@@ -37,7 +37,8 @@
- .Nd display status of open files
- .Sh SYNOPSIS
- .Nm fstat
--.Op Fl fnosv
-+.Op Fl fnov
-+.Op Fl b | s
- .Op Fl M Ar core
- .Op Fl N Ar system
- .Op Fl p Ar pid
-@@ -55,6 +56,8 @@ reports on all open files in the system.
- .Pp
- The options are as follows:
- .Bl -tag -width Ds
-+.It Fl b
-+Like `-s', but display value for bytes transferred in bytes.
- .It Fl f
- Restrict examination to files open in the same file systems as
- the named file arguments, or to the file system containing the
-@@ -195,8 +198,9 @@ the name printed may not be the actual
- name that the process originally used to open that file.
- .It Li XFERS
- Displays number of total data transfers performed on the file.
--.It Li KBYTES
--Displays total number of Kbytes written and read to the file.
-+.It Li BYTES/KBYTES
-+Depending on `-b' or `-s' options, displays total number of
-+Bytes or Kbytes written and read to the file.
- .El
- .Sh SOCKETS
- The formatting of open sockets depends on the protocol domain.
